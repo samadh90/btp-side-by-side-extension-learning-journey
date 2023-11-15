@@ -1,14 +1,22 @@
 {
-  "welcomeFile": "/app/risks/webapp/index.html",
+  "welcomeFile": "app/launchpad.html",
   "routes": [
     {
       "source": "^/app/(.*)$",
-      "localDir": "./",
-      "target": "$1"
+      "target": "$1",
+      "localDir": ".",
+      "cacheControl": "no-cache, no-store, must-revalidate"
     },
     {
-      "source": "^/service/(.*)$",
-      "destination": "srv-api"
+      "source": "^/appconfig/",
+      "localDir": ".",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    },
+    {
+      "source": "^/(.*)$",
+      "target": "$1",
+      "destination": "srv-api",
+      "csrfProtection": true
     }
   ]
 }

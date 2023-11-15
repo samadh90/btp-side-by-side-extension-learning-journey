@@ -1,6 +1,6 @@
 _schema-version: '3.1'
 ID: risk-management
-version: 2.0.0
+version: 3.0.0
 description: "Template for the Learning Journey Building side-by-side extensions on SAP BTP"
 parameters:
   enable-parallel-deployments: true
@@ -8,66 +8,52 @@ build-parameters:
   before-all:
     - builder: custom
       commands:
-        - npm ci
-        - npx -p @sap/cds-dk cds build --production
-
+        - npx cds build --production
 modules:
   - name: risk-management-srv
     type: nodejs
     path: gen/srv
     parameters:
       buildpack: nodejs_buildpack
-      memory: 512M # Réduite de 1G à 512M
+      memory: 256M # Réduite de 1G à 256M
     build-parameters:
-      builder: npm-ci
+      builder: npm
     provides:
       - name: srv-api # required by consumers of CAP services (e.g. approuter)
         properties:
           srv-url: ${default-url}
     requires:
+      - name: risk-management-auth
       - name: risk-management-db
-      - name: risk-management-uaa
+      - name: risk-management-destination
 
   - name: risk-management-db-deployer
     type: hdb
     path: gen/db
     parameters:
       buildpack: nodejs_buildpack
-      memory: 256M # Ajouté
+      memory: 256M # Réduite de 1G à 256M
     requires:
       - name: risk-management-db
 
   - name: risk-management
     type: approuter.nodejs
-    path: app/ # from cds.env.folders. Consider also cds.env.build.target --> gen/app
+    path: app/ # from cds.env.folders. Consider also cds.env.build.target -> gen/app
     parameters:
       keep-existing-routes: true
       disk-quota: 256M
       memory: 256M
-      # hosts: # additional tenant specific hostnames (only for Canary)
-      ## the developer will do this via an extension descriptor:
-      # - <paas-subdomain >${tenant-delimiter}${host}
-      # - <saas-subdomain1>${tenant-delimiter}${host}
-      # - ...
     requires:
       - name: srv-api
         group: destinations
         properties:
-          name: srv-api # this is a name which must be used in xs-app.json as well
+          name: srv-api # must be used in xs-app.json as well
           url: ~{srv-url}
           forwardAuthToken: true
-      - name: risk-management-uaa
+      - name: risk-management-auth
 
 resources:
-  - name: risk-management-db
-    type: com.sap.xs.hdi-container
-    parameters:
-      service: hana # or 'hanatrial' on trial landscapes
-      service-plan: hdi-shared
-    properties:
-      hdi-service-name: ${service-name}
-
-  - name: risk-management-uaa
+  - name: risk-management-auth
     type: org.cloudfoundry.managed-service
     parameters:
       service: xsuaa
@@ -76,16 +62,121 @@ resources:
       config:
         xsappname: risk-management-${org}-${space}
         tenant-mode: dedicated
-        oauth2-configuration:
-          # <-- add this
-          redirect-uris:
-            - https://*.us10-001.hana.ondemand.com/login/callback
         role-collections:
-        - name: 'RiskManager-${space}'
+        - name: 'RiskManager-${org}-${space}'
           description: Manage Risks
           role-template-references:
           - $XSAPPNAME.RiskManager
-        - name: 'RiskViewer-${space}'
+        - name: 'RiskViewer-${org}-${space}'
           description: View Risks
           role-template-references:
           - $XSAPPNAME.RiskViewer
+        oauth2-configuration:
+          redirect-uris:
+            - https://**.cfapps.us10-001.hana.ondemand.com/login/callback
+            # - https://**.hana.ondemand.com/login/callback # Wildcard redirect to SAP BTP (You might want to make this more exclusive)
+            # example: - https://risk-management-approuter.cfapps.eu10-004.hana.ondemand.com/login/callback
+            
+  - name: risk-management-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+  - name: risk-management-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+
+
+# _schema-version: '3.1'
+# ID: risk-management
+# version: 2.0.0
+# description: "Template for the Learning Journey Building side-by-side extensions on SAP BTP"
+# parameters:
+#   enable-parallel-deployments: true
+# build-parameters:
+#   before-all:
+#     - builder: custom
+#       commands:
+#         - npm ci
+#         - npx -p @sap/cds-dk cds build --production
+
+# modules:
+#   - name: risk-management-srv
+#     type: nodejs
+#     path: gen/srv
+#     parameters:
+#       buildpack: nodejs_buildpack
+#       memory: 512M # Réduite de 1G à 512M
+#     build-parameters:
+#       builder: npm-ci
+#     provides:
+#       - name: srv-api # required by consumers of CAP services (e.g. approuter)
+#         properties:
+#           srv-url: ${default-url}
+#     requires:
+#       - name: risk-management-db
+#       - name: risk-management-uaa
+
+#   - name: risk-management-db-deployer
+#     type: hdb
+#     path: gen/db
+#     parameters:
+#       buildpack: nodejs_buildpack
+#       memory: 256M # Ajouté
+#     requires:
+#       - name: risk-management-db
+
+#   - name: risk-management
+#     type: approuter.nodejs
+#     path: app/ # from cds.env.folders. Consider also cds.env.build.target --> gen/app
+#     parameters:
+#       keep-existing-routes: true
+#       disk-quota: 256M
+#       memory: 256M
+#       # hosts: # additional tenant specific hostnames (only for Canary)
+#       ## the developer will do this via an extension descriptor:
+#       # - <paas-subdomain >${tenant-delimiter}${host}
+#       # - <saas-subdomain1>${tenant-delimiter}${host}
+#       # - ...
+#     requires:
+#       - name: srv-api
+#         group: destinations
+#         properties:
+#           name: srv-api # this is a name which must be used in xs-app.json as well
+#           url: ~{srv-url}
+#           forwardAuthToken: true
+#       - name: risk-management-uaa
+
+# resources:
+#   - name: risk-management-db
+#     type: com.sap.xs.hdi-container
+#     parameters:
+#       service: hana # or 'hanatrial' on trial landscapes
+#       service-plan: hdi-shared
+#     properties:
+#       hdi-service-name: ${service-name}
+
+#   - name: risk-management-uaa
+#     type: org.cloudfoundry.managed-service
+#     parameters:
+#       service: xsuaa
+#       service-plan: application
+#       path: ./xs-security.json
+#       config:
+#         xsappname: risk-management-${org}-${space}
+#         tenant-mode: dedicated
+#         oauth2-configuration:
+#           # <-- add this
+#           redirect-uris:
+#             - https://*.us10-001.hana.ondemand.com/login/callback
+#         role-collections:
+#         - name: 'RiskManager-${space}'
+#           description: Manage Risks
+#           role-template-references:
+#           - $XSAPPNAME.RiskManager
+#         - name: 'RiskViewer-${space}'
+#           description: View Risks
+#           role-template-references:
+#           - $XSAPPNAME.RiskViewer
