@@ -1,27 +1,14 @@
 {
-  "welcomeFile": "app/launchpad.html",
+  "welcomeFile": "/app/risks/webapp/index.html",
   "routes": [
     {
-      "source": "^/-/cds/.*",
-      "destination": "mtx-api",
-      "authenticationType": "none"
-    },
-    {
       "source": "^/app/(.*)$",
-      "target": "$1",
-      "localDir": ".",
-      "cacheControl": "no-cache, no-store, must-revalidate"
+      "localDir": "./",
+      "target": "$1"
     },
     {
-      "source": "^/appconfig/",
-      "localDir": ".",
-      "cacheControl": "no-cache, no-store, must-revalidate"
-    },
-    {
-      "source": "^/(.*)$",
-      "target": "$1",
-      "destination": "srv-api",
-      "csrfProtection": true
+      "source": "^/service/(.*)$",
+      "destination": "srv-api"
     }
   ]
 }
