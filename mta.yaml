@@ -8,7 +8,9 @@ build-parameters:
   before-all:
     - builder: custom
       commands:
-        - npx cds build --production
+        - npm ci
+        - npx -p @sap/cds-dk cds build --production
+
 modules:
   - name: risk-management-srv
     type: nodejs
@@ -67,10 +69,12 @@ resources:
           description: Manage Risks
           role-template-references:
           - $XSAPPNAME.RiskManager
+
         - name: 'RiskViewer-${org}-${space}'
           description: View Risks
           role-template-references:
           - $XSAPPNAME.RiskViewer
+
         oauth2-configuration:
           redirect-uris:
             - https://**.cfapps.us10-001.hana.ondemand.com/login/callback
