@@ -38,7 +38,7 @@ modules:
     requires:
       - name: risk-management-db
 
-  - name: risk-management-app
+  - name: risk-management
     type: approuter.nodejs
     path: app/ # from cds.env.folders. Consider also cds.env.build.target -> gen/app
     parameters:
